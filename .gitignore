@@ -1,0 +1,35 @@
+# Cache y archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Archivos de credenciales y claves privadas (¡NO subir a GitHub!)
+.env
+credentials.json
+token.json
+secret_create_admin.py
+app.db
+*.db
+
+
+# Archivos pesados / Embeddings (Se descargan automáticamente desde Google Drive en Hugging Face)
+db_vectorial/
+db_vectorial.zip
+proyecto_completo.zip
+*.zip
+*.tar.gz
+
+# Archivos de IDEs y configuración local
+.vscode/
+.idea/
+.DS_Store
+
+# Archivos y configuraciones de Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

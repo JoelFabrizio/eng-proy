@@ -1,0 +1,49 @@
+# PyTorch con soporte GPU CUDA 13.0
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch
+torchvision
+torchaudio
+
+# FastAPI & Servidor Web
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+
+# Streamlit UI & Cliente HTTP
+streamlit
+requests
+
+# Ecosistema LangChain
+langchain
+langchain-core
+langchain-community
+langchain-chroma
+langchain-openai
+langchain-ollama
+langchain-huggingface
+langchain-text-splitters
+
+# Base Vectorial & Embeddings (Acelerado por GPU)
+chromadb
+sentence-transformers
+
+# Procesamiento de Documentos & Transcripción (Whisper GPU)
+pypdf
+docx2txt
+python-pptx
+openai-whisper
+imageio-ffmpeg
+
+# Base de Datos, Entorno & Seguridad
+sqlalchemy
+python-dotenv
+bcrypt
+passlib[bcrypt]
+PyJWT
+
+# Integración con Google APIs (Drive)
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
