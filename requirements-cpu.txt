@@ -23,6 +23,8 @@ langchain-chroma
 langchain-openai
 langchain-ollama
 langchain-huggingface
+langchain-google-genai
+google-generativeai
 langchain-text-splitters
 
 # Base Vectorial & Embeddings

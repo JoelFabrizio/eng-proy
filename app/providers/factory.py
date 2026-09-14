@@ -12,6 +12,9 @@ def get_provider() -> AIProvider:
         return OpenAIProvider()
     elif settings.AI_PROVIDER.lower() == "ollama":
         return OllamaProvider()
+    elif settings.AI_PROVIDER.lower() == "gemini":
+        from app.providers.gemini_provider import GeminiProvider
+        return GeminiProvider()
     else:
         raise ValueError(f"Proveedor no soportado: {settings.AI_PROVIDER}")
     
