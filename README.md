@@ -1,5 +1,7 @@
 # 🎓 Asistente Académico RAG de Inglés
 
+🌐 **[English Version](README_EN.md)** | **[Versión en Español](README.md)**
+
 ¡Bienvenido al **Asistente Académico RAG**! Este proyecto es una solución integral basada en **Generación Aumentada por Recuperación (RAG)** que actúa como Tutor Académico de Inglés para alumnos y Mentor Pedagógico para profesores.
 
 ---
