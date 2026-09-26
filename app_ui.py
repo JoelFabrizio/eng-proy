@@ -5,11 +5,37 @@ import uuid  # 👈 Genera IDs únicos para cada sesión de chat (ej: chat_a1b2c
 import base64
 import re
 
+import socket
+import subprocess
+import sys
+import time
+
+def iniciar_backend_si_no_existe():
+    """Inicia el backend FastAPI en segundo plano en puerto 8000 si no está activo."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            if s.connect_ex(("127.0.0.1", 8000)) == 0:
+                return  # El backend ya está corriendo
+    except Exception:
+        pass
+
+    try:
+        subprocess.Popen([
+            sys.executable, "-m", "uvicorn", "main:app",
+            "--host", "127.0.0.1", "--port", "8000"
+        ])
+        time.sleep(3)
+    except Exception as e:
+        print(f"⚠️ Error intentando iniciar el backend: {e}")
+
+# Asegurar backend iniciado
+iniciar_backend_si_no_existe()
+
 # 🌐 URLs de FastAPI
 AUTH_API_URL = "http://127.0.0.1:8000/api/v1/auth"
-CHAT_API_URL = "http://127.0.0.1:8000/api/v1/rag"  # 👈 Ruta base para endpoints /chat, /sessions y /history
+CHAT_API_URL = "http://127.0.0.1:8000/api/v1/rag"
 
-# Si estamos en Docker usará 'http://backend:8000', de lo contrario usa 'http://127.0.0.1:8000'
 BACKEND_HOST = os.getenv("BACKEND_HOST", "http://127.0.0.1:8000")
 
 # ---------------------------------------------------------

@@ -1,1 +1,45 @@
--r requirements-cpu.txt
+# Dependencias para Hugging Face Spaces & Local
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+streamlit
+requests
+
+# Ecosistema LangChain & AI
+langchain
+langchain-core
+langchain-community
+langchain-chroma
+langchain-openai
+langchain-ollama
+langchain-huggingface
+langchain-google-genai
+google-generativeai
+langchain-text-splitters
+
+# Base Vectorial & Embeddings
+chromadb
+sentence-transformers
+torch
+
+# Procesamiento de Documentos & Transcripción
+pypdf
+docx2txt
+python-pptx
+openai-whisper
+imageio-ffmpeg
+
+# Base de Datos, Entorno & Seguridad
+sqlalchemy
+python-dotenv
+bcrypt
+passlib[bcrypt]
+PyJWT
+
+# Integración con Google APIs (Drive) & Descargas
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+gdown

@@ -1,3 +1,14 @@
+---
+title: Asistente Académico RAG
+emoji: 🎓
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+sdk_version: 1.35.0
+app_file: app_ui.py
+pinned: false
+---
+
 # 🎓 Asistente Académico RAG de Inglés
 
 🌐 **[English Version](README_EN.md)** | **[Versión en Español](README.md)**
