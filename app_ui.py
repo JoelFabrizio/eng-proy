@@ -4,11 +4,69 @@ import os
 import uuid  # 👈 Genera IDs únicos para cada sesión de chat (ej: chat_a1b2c3)
 import base64
 import re
+import asyncio
 
 import socket
 import subprocess
 import sys
 import time
+
+try:
+    import edge_tts
+    HAS_EDGE_TTS = True
+except ImportError:
+    HAS_EDGE_TTS = False
+
+def generar_audio_tts(texto: str, voice: str = "en-US-AvaNeural") -> str:
+    """Genera un archivo MP3 con edge-tts y retorna la ruta del archivo."""
+    if not HAS_EDGE_TTS or not texto:
+        return None
+    
+    # Limpiar sintaxis markdown y etiquetas internas para que la voz no lea símbolos
+    texto_limpio = re.sub(r'\[NIVEL_FINAL:\s*[A-C][1-2]\]', '', texto, flags=re.IGNORECASE)
+    texto_limpio = re.sub(r'[*#_`]', '', texto_limpio).strip()
+    
+    if not texto_limpio:
+        return None
+
+    archivo_salida = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"temp_audio_{uuid.uuid4().hex[:6]}.mp3")
+    
+    async def _run_tts():
+        communicate = edge_tts.Communicate(texto_limpio, voice=voice)
+        await communicate.save(archivo_salida)
+
+    try:
+        asyncio.run(_run_tts())
+        return archivo_salida
+    except Exception as e:
+        print(f"⚠️ Error al generar audio TTS: {e}")
+        return None
+
+
+def asegurar_db_vectorial():
+    """Descarga automáticamente la base vectorial desde Google Drive si no existe o está vacía en la nube."""
+    db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "db_vectorial")
+    if not os.path.exists(db_dir) or not os.listdir(db_dir):
+        print("⏳ Descargando base vectorial desde Google Drive...")
+        try:
+            import gdown
+            folder_url = "https://drive.google.com/drive/folders/1zAqmuqyhpHtbZFwet3It-HF00oPXe2ok?usp=drive_link"
+            gdown.download_folder(url=folder_url, output=db_dir, quiet=False, remaining_ok=True)
+            print("✅ Base vectorial descargada con éxito.")
+        except Exception as e:
+            print(f"⚠️ Error al descargar la base vectorial de Google Drive: {e}")
+
+# Asegurar que la base vectorial esté descargada antes de iniciar el backend
+asegurar_db_vectorial()
+
+# Sincronizar secretos de Streamlit Cloud con las variables de entorno del sistema
+try:
+    if hasattr(st, "secrets"):
+        for key, val in st.secrets.items():
+            if isinstance(val, str) and key not in os.environ:
+                os.environ[key] = val
+except Exception as e:
+    pass
 
 def iniciar_backend_si_no_existe():
     """Inicia el backend FastAPI en segundo plano en puerto 8000 si no está activo."""
@@ -21,10 +79,11 @@ def iniciar_backend_si_no_existe():
         pass
 
     try:
+        env_vars = os.environ.copy()
         subprocess.Popen([
             sys.executable, "-m", "uvicorn", "main:app",
             "--host", "127.0.0.1", "--port", "8000"
-        ])
+        ], env=env_vars)
         time.sleep(3)
     except Exception as e:
         print(f"⚠️ Error intentando iniciar el backend: {e}")
@@ -74,7 +133,8 @@ TEXTS = {
         "test_prompt": "Hola, me gustaría realizar mi Test de Diagnóstico de Nivel de Inglés. Por favor preséntame las preguntas iniciales para evaluarme.",
         "toast_level": "🎉 ¡Nivel asignado! Tu nuevo nivel es",
         "login_success": "¡Inicio de sesión exitoso!",
-        "login_warn": "Por favor completa todos los campos."
+        "login_warn": "Por favor completa todos los campos.",
+        "tts_toggle": "🔊 Escuchar respuestas con voz (TTS)"
     },
     "English": {
         "app_title": "🎓 RAG Academic Assistant",
@@ -108,7 +168,8 @@ TEXTS = {
         "test_prompt": "Hello, I would like to take my English Placement Diagnostic Test. Please present the initial questions to evaluate me.",
         "toast_level": "🎉 Level assigned! Your new level is",
         "login_success": "Login successful!",
-        "login_warn": "Please fill in all fields."
+        "login_warn": "Please fill in all fields.",
+        "tts_toggle": "🔊 Read responses out loud (TTS)"
     }
 }
 
@@ -251,6 +312,9 @@ with st.sidebar:
         st.session_state["language"] = sel_idioma
         st.rerun()
 
+    # 🔊 Interruptor de Voz / Audio (TTS)
+    st.session_state["enable_tts"] = st.toggle(t("tts_toggle"), value=st.session_state.get("enable_tts", True))
+
 # Pantalla de Autenticación (Login / Registro) 🔑
 if st.session_state["token"] is None:
     st.title(t("app_title"))
@@ -328,7 +392,12 @@ else:
                 st.session_state["messages"].append({"role": "user", "content": prompt_eval})
                 exito, resp_eval = enviar_mensaje_chat(prompt_eval, nueva_sesion, st.session_state["token"], language=st.session_state["language"])
                 if exito:
-                    st.session_state["messages"].append({"role": "assistant", "content": resp_eval})
+                    msg_eval = {"role": "assistant", "content": resp_eval}
+                    if st.session_state.get("enable_tts", True):
+                        audio_eval = generar_audio_tts(resp_eval)
+                        if audio_eval:
+                            msg_eval["audio_path"] = audio_eval
+                    st.session_state["messages"].append(msg_eval)
                 st.rerun()
 
         # 1. Buscamos solo las sesiones guardadas (que tienen al menos 1 respuesta del bot)
@@ -387,6 +456,8 @@ else:
     for msg in st.session_state["messages"]:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
+            if msg["role"] == "assistant" and msg.get("audio_path") and os.path.exists(msg["audio_path"]):
+                st.audio(msg["audio_path"], format="audio/mp3")
 
     # Caja de texto para enviar un mensaje
     if prompt := st.chat_input(t("input_placeholder")):
@@ -406,6 +477,12 @@ else:
                 )
                 st.write(respuesta)
                 
+                audio_file = None
+                if st.session_state.get("enable_tts", True):
+                    audio_file = generar_audio_tts(respuesta)
+                    if audio_file and os.path.exists(audio_file):
+                        st.audio(audio_file, format="audio/mp3")
+
                 # Detectar si la respuesta contiene la etiqueta final de evaluación [NIVEL_FINAL: XX]
                 match = re.search(r"\[NIVEL_FINAL:\s*([A-C][1-2])\]", respuesta, re.IGNORECASE)
                 if match:
@@ -415,5 +492,8 @@ else:
                         st.toast(f"{t('toast_level')} {nuevo_nivel}.", icon="🎯")
 
         # Guardar la respuesta del asistente y recargar para refrescar el historial del sidebar
-        st.session_state["messages"].append({"role": "assistant", "content": respuesta})
+        msg_data = {"role": "assistant", "content": respuesta}
+        if audio_file:
+            msg_data["audio_path"] = audio_file
+        st.session_state["messages"].append(msg_data)
         st.rerun()
