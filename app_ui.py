@@ -188,25 +188,38 @@ def login_usuario(username, password):
     try:
         response = requests.post(f"{AUTH_API_URL}/login", json=payload)
         if response.status_code == 200:
-            return True, response.json()
+            try:
+                return True, response.json()
+            except Exception:
+                return False, "Respuesta inválida del servidor."
         else:
-            error_msg = response.json().get("detail", "Error de autenticación")
+            try:
+                error_msg = response.json().get("detail", "Error de autenticación.")
+            except Exception:
+                error_msg = f"Error del servidor ({response.status_code})."
             return False, error_msg
     except requests.exceptions.ConnectionError:
         return False, "❌ No se pudo conectar con el servidor. ¿Está FastAPI encendido?"
+    except Exception as e:
+        return False, f"❌ Error inesperado: {str(e)}"
 
 def registrar_usuario(username, password, role="alumno"):
     """Envía los datos al endpoint de Registro."""
     payload = {"username": username, "password": password, "role": role}
     try:
         response = requests.post(f"{AUTH_API_URL}/register", json=payload)
-        if response.status_code == 201:
+        if response.status_code in (200, 201):
             return True, f"¡Usuario ({role}) creado exitosamente! Ahora puedes iniciar sesión."
         else:
-            error_msg = response.json().get("detail", "Error al registrar usuario.")
+            try:
+                error_msg = response.json().get("detail", "Error al registrar usuario.")
+            except Exception:
+                error_msg = f"Error del servidor ({response.status_code}). Verifique la conexión a la base de datos."
             return False, error_msg
     except requests.exceptions.ConnectionError:
         return False, "❌ No se pudo conectar con el servidor."
+    except Exception as e:
+        return False, f"❌ Error al registrar: {str(e)}"
 
 def actualizar_nivel_ingles(token: str, level: str):
     """Actualiza el nivel de inglés del usuario en SQLite."""
@@ -251,16 +264,21 @@ def borrar_sesion_chat(token: str, session_id: str):
 def enviar_mensaje_chat(mensaje: str, session_id: str, token: str, language: str = "Español"):
     """Envía la consulta del usuario asociándola a la sesión activa y el idioma preferido."""
     payload = {"message": mensaje, "session_id": session_id, "language": language}
-    headers = {"Authorization": f"Bearer {token}"} 
+    headers = {"Authorization": f"Bearer {token}"}
 
     try:
         response = requests.post(f"{CHAT_API_URL}/chat", json=payload, headers=headers)
         if response.status_code == 200:
-            return True, response.json().get("response", "Sin respuesta.")
+            try:
+                return True, response.json().get("response", "Sin respuesta.")
+            except Exception:
+                return False, "Respuesta inválida del servidor."
         else:
             return False, f"Error {response.status_code}: No se pudo procesar la solicitud."
     except requests.exceptions.ConnectionError:
         return False, "❌ No se pudo conectar con el servidor."
+    except Exception as e:
+        return False, f"❌ Error: {str(e)}"
 
 # ---------------------------------------------------------
 # 💾 Manejo del Estado de la Sesión (st.session_state)
