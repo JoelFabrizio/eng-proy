@@ -17,41 +17,30 @@ try:
 except ImportError:
     HAS_EDGE_TTS = False
 
-def generar_audio_tts(texto: str, voice: str = "es-ES-AlvaroNeural") -> str:
-    """Genera un archivo MP3 con edge-tts o gTTS y retorna la ruta del archivo."""
+import io
+
+def generar_audio_bytes(texto: str, language: str = "Español") -> bytes:
+    """Genera un archivo MP3 en memoria (bytes) para Streamlit st.audio y st.download_button."""
     if not texto:
         return None
-    
-    # Limpiar sintaxis markdown y etiquetas internas para que la voz no lea símbolos
-    texto_limpio = re.sub(r'\[NIVEL_FINAL:\s*[A-C][1-2]\]', '', texto, flags=re.IGNORECASE)
-    texto_limpio = re.sub(r'[*#_`]', '', texto_limpio).strip()
-    
-    if not texto_limpio:
-        return None
-
-    archivo_salida = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"temp_audio_{uuid.uuid4().hex[:6]}.mp3")
-    
-    # Intentar primero con edge-tts
-    if HAS_EDGE_TTS:
-        try:
-            async def _run_tts():
-                communicate = edge_tts.Communicate(texto_limpio, voice=voice)
-                await communicate.save(archivo_salida)
-
-            asyncio.run(_run_tts())
-            if os.path.exists(archivo_salida):
-                return archivo_salida
-        except Exception as e:
-            print(f"⚠️ Warning edge-tts: {e}")
-
-    # Fallback con gTTS (Google Text-to-Speech)
     try:
+        texto_limpio = re.sub(r'\[NIVEL_FINAL:\s*[A-C][1-2]\]', '', texto, flags=re.IGNORECASE)
+        patron_disc = r"^(Como|Aunque|Dado que|En esta)\s+.*?(interfaz|asistente|modelo|texto|sonido|audio).*?([:\n]|\.\s*)"
+        texto_limpio = re.sub(patron_disc, "", texto_limpio, flags=re.IGNORECASE)
+        texto_limpio = re.sub(r'[*#_`]', '', texto_limpio).strip()
+        
+        if not texto_limpio:
+            return None
+
         from gtts import gTTS
-        tts = gTTS(text=texto_limpio, lang="es")
-        tts.save(archivo_salida)
-        return archivo_salida
+        lang_code = "es" if language == "Español" else "en"
+        fp = io.BytesIO()
+        tts = gTTS(text=texto_limpio[:1000], lang=lang_code)
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return fp.read()
     except Exception as e:
-        print(f"⚠️ Error al generar audio TTS: {e}")
+        print(f"⚠️ Error generando audio: {e}")
         return None
 
 
@@ -146,7 +135,10 @@ TEXTS = {
         "toast_level": "🎉 ¡Nivel asignado! Tu nuevo nivel es",
         "login_success": "¡Inicio de sesión exitoso!",
         "login_warn": "Por favor completa todos los campos.",
-        "tts_toggle": "🔊 Escuchar respuestas con voz (TTS)"
+        "tts_toggle": "🔊 Escuchar respuestas automáticamente (TTS)",
+        "btn_gen_audio": "🔊 Generar Archivo de Audio (.mp3)",
+        "btn_download_audio": "📥 Descargar Audio MP3",
+        "audio_spinner": "Generando archivo de audio MP3..."
     },
     "English": {
         "app_title": "🎓 RAG Academic Assistant",
@@ -181,7 +173,10 @@ TEXTS = {
         "toast_level": "🎉 Level assigned! Your new level is",
         "login_success": "Login successful!",
         "login_warn": "Please fill in all fields.",
-        "tts_toggle": "🔊 Read responses out loud (TTS)"
+        "tts_toggle": "🔊 Automatically generate audio responses (TTS)",
+        "btn_gen_audio": "🔊 Generate Audio File (.mp3)",
+        "btn_download_audio": "📥 Download MP3 Audio",
+        "audio_spinner": "Generating MP3 audio file..."
     }
 }
 
@@ -483,11 +478,30 @@ else:
     st.caption(f"{t('active_conv')} **{st.session_state['active_session_id']}**")
 
     # Renderizar el historial de mensajes de la sesión activa
-    for msg in st.session_state["messages"]:
+    for idx, msg in enumerate(st.session_state["messages"]):
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-            if msg["role"] == "assistant" and msg.get("audio_path") and os.path.exists(msg["audio_path"]):
-                st.audio(msg["audio_path"], format="audio/mp3")
+            if msg["role"] == "assistant":
+                audio_bytes = msg.get("audio_bytes")
+                
+                # Si el usuario presiona el botón para generar el archivo de audio
+                if not audio_bytes and st.button(t("btn_gen_audio"), key=f"btn_gen_{idx}"):
+                    with st.spinner(t("audio_spinner")):
+                        audio_bytes = generar_audio_bytes(msg["content"], language=st.session_state.get("language", "Español"))
+                        if audio_bytes:
+                            msg["audio_bytes"] = audio_bytes
+                            st.rerun()
+
+                # Si el audio ya existe, mostrar reproductor y botón de descarga
+                if audio_bytes:
+                    st.audio(audio_bytes, format="audio/mp3")
+                    st.download_button(
+                        label=t("btn_download_audio"),
+                        data=audio_bytes,
+                        file_name=f"audio_respuesta_{idx+1}.mp3",
+                        mime="audio/mp3",
+                        key=f"btn_dl_{idx}"
+                    )
 
     # Caja de texto para enviar un mensaje
     if prompt := st.chat_input(t("input_placeholder")):
@@ -505,13 +519,22 @@ else:
                     st.session_state["token"],
                     language=st.session_state.get("language", "Español")
                 )
+                
+                # Filtrar cualquier disclaimer introductorio
+                patron_disc = r"^(Como|Aunque|Dado que|En esta)\s+.*?(interfaz|asistente|modelo|texto|sonido|audio).*?([:\n]|\.\s*)"
+                respuesta = re.sub(patron_disc, "", respuesta, flags=re.IGNORECASE).strip()
+                respuesta = re.sub(r"^No puedo (generar|enviar|crear) (archivos de )?(audio|sonido|voz).*?([:\n]|\.\s*)", "", respuesta, flags=re.IGNORECASE).strip()
+                
                 st.write(respuesta)
                 
-                audio_file = None
-                if st.session_state.get("enable_tts", True):
-                    audio_file = generar_audio_tts(respuesta)
-                    if audio_file and os.path.exists(audio_file):
-                        st.audio(audio_file, format="audio/mp3")
+                # Detectar si el usuario solicitó audio explícitamente en su consulta
+                pide_audio_explicito = any(p in prompt.lower() for p in ["audio", "nota de voz", "escuchar", "voz", "hablada", "podcast", "speech"])
+
+                audio_bytes = None
+                if st.session_state.get("enable_tts", False) or pide_audio_explicito:
+                    audio_bytes = generar_audio_bytes(respuesta, language=st.session_state.get("language", "Español"))
+                    if audio_bytes:
+                        st.audio(audio_bytes, format="audio/mp3")
 
                 # Detectar si la respuesta contiene la etiqueta final de evaluación [NIVEL_FINAL: XX]
                 match = re.search(r"\[NIVEL_FINAL:\s*([A-C][1-2])\]", respuesta, re.IGNORECASE)
@@ -523,7 +546,7 @@ else:
 
         # Guardar la respuesta del asistente y recargar para refrescar el historial del sidebar
         msg_data = {"role": "assistant", "content": respuesta}
-        if audio_file:
-            msg_data["audio_path"] = audio_file
+        if audio_bytes:
+            msg_data["audio_bytes"] = audio_bytes
         st.session_state["messages"].append(msg_data)
         st.rerun()
