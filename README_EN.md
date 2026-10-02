@@ -32,7 +32,7 @@ Welcome to the **English Academic RAG Assistant**! This project is a comprehensi
 │   ├── providers/            # AI Provider Factory (Ollama / OpenAI)
 │   ├── schemas/              # Pydantic validation schemas
 │   └── services/             # RAG Service, Dual Prompts & SQL History
-├── db_vectorial/             # Persistent Vector Database (ChromaDB)
+├── db_vectorial/             # Vector Database (ChromaDB) - Ignored in Git due to size (~800MB)
 ├── app_ui.py                 # Streamlit Interactive Graphical Interface
 ├── config.py                 # System Configuration Settings
 ├── main.py                   # FastAPI Server Entrypoint

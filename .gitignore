@@ -13,11 +13,10 @@ env/
 credentials.json
 token.json
 secret_create_admin.py
+# Base de datos de usuarios (Se crea automáticamente al iniciar la app)
 app.db
-*.db
 
-
-# Archivos pesados / Embeddings (Se descargan automáticamente desde Google Drive en Hugging Face)
+# Archivos zip o volcados temporales pesados y bases vectoriales
 db_vectorial/
 db_vectorial.zip
 proyecto_completo.zip

@@ -43,7 +43,7 @@ pinned: false
 │   ├── providers/            # Fábrica de Proveedores de IA (Ollama / OpenAI)
 │   ├── schemas/              # Modelos de validación Pydantic
 │   └── services/             # Servicio RAG, Prompts Duales e Historial SQL
-├── db_vectorial/             # Base de datos vectorial persistente (ChromaDB)
+├── db_vectorial/             # Base de datos vectorial (ChromaDB) - Ignorada en Git por peso (~800MB)
 ├── app_ui.py                 # Interfaz gráfica interactiva en Streamlit
 ├── config.py                 # Configuración de variables del sistema
 ├── main.py                   # Punto de entrada del servidor FastAPI
