@@ -40,6 +40,8 @@ imageio-ffmpeg
 
 # Base de Datos, Entorno & Seguridad
 sqlalchemy
+psycopg[binary]
+psycopg2-binary
 python-dotenv
 bcrypt
 passlib[bcrypt]
