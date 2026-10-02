@@ -130,12 +130,11 @@ TEXTS = {
         "active_conv": "Conversación activa:",
         "input_placeholder": "Escribe tu consulta académica...",
         "spinner": "Procesando consulta en la base de datos...",
-        "lang_selector": "🌐 Idioma de la Interfaz / Interface Language",
+        "lang_selector": "🌐 Idioma de la Interfaz",
         "test_prompt": "Hola, me gustaría realizar mi Test de Diagnóstico de Nivel de Inglés. Por favor preséntame las preguntas iniciales para evaluarme.",
         "toast_level": "🎉 ¡Nivel asignado! Tu nuevo nivel es",
         "login_success": "¡Inicio de sesión exitoso!",
         "login_warn": "Por favor completa todos los campos.",
-        "tts_toggle": "🔊 Escuchar respuestas automáticamente (TTS)",
         "btn_gen_audio": "🔊 Generar Archivo de Audio (.mp3)",
         "btn_download_audio": "📥 Descargar Audio MP3",
         "audio_spinner": "Generando archivo de audio MP3..."
@@ -168,12 +167,11 @@ TEXTS = {
         "active_conv": "Active conversation:",
         "input_placeholder": "Type your academic query...",
         "spinner": "Processing query in database...",
-        "lang_selector": "🌐 Interface & Response Language",
+        "lang_selector": "🌐 Interface Language",
         "test_prompt": "Hello, I would like to take my English Placement Diagnostic Test. Please present the initial questions to evaluate me.",
         "toast_level": "🎉 Level assigned! Your new level is",
         "login_success": "Login successful!",
         "login_warn": "Please fill in all fields.",
-        "tts_toggle": "🔊 Automatically generate audio responses (TTS)",
         "btn_gen_audio": "🔊 Generate Audio File (.mp3)",
         "btn_download_audio": "📥 Download MP3 Audio",
         "audio_spinner": "Generating MP3 audio file..."
@@ -329,16 +327,13 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 
-    # 🌐 Selector de Idioma de Interfaz y Respuestas
+    # 🌐 Selector de Idioma de Interfaz
     idiomas = ["Español", "English"]
     idx_id = 0 if st.session_state.get("language", "Español") == "Español" else 1
     sel_idioma = st.selectbox(t("lang_selector"), options=idiomas, index=idx_id)
     if sel_idioma != st.session_state["language"]:
         st.session_state["language"] = sel_idioma
         st.rerun()
-
-    # 🔊 Interruptor de Voz / Audio (TTS)
-    st.session_state["enable_tts"] = st.toggle(t("tts_toggle"), value=st.session_state.get("enable_tts", True))
 
 # Pantalla de Autenticación (Login / Registro) 🔑
 if st.session_state["token"] is None:
@@ -531,7 +526,7 @@ else:
                 pide_audio_explicito = any(p in prompt.lower() for p in ["audio", "nota de voz", "escuchar", "voz", "hablada", "podcast", "speech"])
 
                 audio_bytes = None
-                if st.session_state.get("enable_tts", False) or pide_audio_explicito:
+                if pide_audio_explicito:
                     audio_bytes = generar_audio_bytes(respuesta, language=st.session_state.get("language", "Español"))
                     if audio_bytes:
                         st.audio(audio_bytes, format="audio/mp3")
