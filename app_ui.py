@@ -17,9 +17,9 @@ try:
 except ImportError:
     HAS_EDGE_TTS = False
 
-def generar_audio_tts(texto: str, voice: str = "en-US-AvaNeural") -> str:
-    """Genera un archivo MP3 con edge-tts y retorna la ruta del archivo."""
-    if not HAS_EDGE_TTS or not texto:
+def generar_audio_tts(texto: str, voice: str = "es-ES-AlvaroNeural") -> str:
+    """Genera un archivo MP3 con edge-tts o gTTS y retorna la ruta del archivo."""
+    if not texto:
         return None
     
     # Limpiar sintaxis markdown y etiquetas internas para que la voz no lea símbolos
@@ -31,12 +31,24 @@ def generar_audio_tts(texto: str, voice: str = "en-US-AvaNeural") -> str:
 
     archivo_salida = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"temp_audio_{uuid.uuid4().hex[:6]}.mp3")
     
-    async def _run_tts():
-        communicate = edge_tts.Communicate(texto_limpio, voice=voice)
-        await communicate.save(archivo_salida)
+    # Intentar primero con edge-tts
+    if HAS_EDGE_TTS:
+        try:
+            async def _run_tts():
+                communicate = edge_tts.Communicate(texto_limpio, voice=voice)
+                await communicate.save(archivo_salida)
 
+            asyncio.run(_run_tts())
+            if os.path.exists(archivo_salida):
+                return archivo_salida
+        except Exception as e:
+            print(f"⚠️ Warning edge-tts: {e}")
+
+    # Fallback con gTTS (Google Text-to-Speech)
     try:
-        asyncio.run(_run_tts())
+        from gtts import gTTS
+        tts = gTTS(text=texto_limpio, lang="es")
+        tts.save(archivo_salida)
         return archivo_salida
     except Exception as e:
         print(f"⚠️ Error al generar audio TTS: {e}")
