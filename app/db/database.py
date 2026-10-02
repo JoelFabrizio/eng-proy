@@ -28,11 +28,13 @@ def get_db():
 from sqlalchemy import text
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
-    # Migración liviana para añadir la columna english_level si la BD ya existe
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN english_level VARCHAR DEFAULT 'sin_evaluar'"))
-            conn.commit()
-        except Exception:
-            pass
+    try:
+        Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN english_level VARCHAR DEFAULT 'sin_evaluar'"))
+                conn.commit()
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Warning: Could not initialize database ({e}). If using Supabase, check your DATABASE_URL in Streamlit secrets.")
